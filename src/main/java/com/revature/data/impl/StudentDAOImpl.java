@@ -32,45 +32,71 @@ public class StudentDAOImpl implements StudentDAO {
 		List<StudentRankDTO> studentRank = null;
 		try {
 			StringBuilder sb = new StringBuilder(
-					"SELECT s.`ID`stuId,s.`NAME`name,u.`NAME`college,s.`DEPARTMENT`department,s.`CREATED_ON`createdOn,"
-							+ "sa.`TOTAL_ACTIVITY_POINTS` actPts,\r\n" + "ss.`TOTAL_SKILL_POINTS` skillPts,\r\n"
-							+ "sa.`TOTAL_ACTIVITY_POINTS`+ss.`TOTAL_SKILL_POINTS`tot \r\n"
-							+ "FROM students s JOIN universities u ON s.`UNIVERSITY_ID`=u.`ID`\r\n"
-							+ "JOIN (SELECT a.id, \r\n"
-							+ "ROUND (SUM(IFNULL(a.actpts,0))*(SELECT WEIGHTAGE FROM seed_points_weightage WHERE id=1)/100)AS TOTAL_ACTIVITY_POINTS\r\n"
-							+ "FROM\r\n"
-							+ "((SELECT s.`ID`,SUM(c.`ENROLLMENT_POINTS`)+SUM(IF(IFNULL(sc.`COMPLETED_ON`,FALSE),c.`COMPLETION_POINTS`,0)) actpts \r\n"
-							+ "FROM students s\r\n" + "JOIN student_courses sc ON s.`ID`=sc.`STUDENT_ID` \r\n"
-							+ "JOIN courses c ON c.`ID`=sc.`COURSE_ID` GROUP BY s.`ID`)\r\n" + "\r\n" + "UNION ALL\r\n"
-							+ "(SELECT s.`ID`,SUM(p.`ENROLLMENT_POINTS`)+SUM(IF(IFNULL(sp.`COMPLETED_ON`,FALSE),p.`COMPLETION_POINTS`,0)) actpts \r\n"
-							+ "FROM students s \r\n" + "JOIN student_projects sp ON s.`ID`=sp.`STUDENT_ID`\r\n"
-							+ "JOIN projects p ON sp.`PROJECT_ID`=p.`ID`GROUP BY s.`ID`)\r\n" + "\r\n" + "UNION ALL\r\n"
-							+ "(SELECT `student_id` id,COUNT(DISTINCT(DATE(activity_timestamp)))*(SELECT points FROM point_settings WHERE login_activity_id=1) actpts\r\n"
-							+ " FROM student_audit_details\r\n"
-							+ "WHERE login_activity_id=1 GROUP BY student_id ))a\r\n" + "GROUP BY a.id)sa\r\n"
-							+ "ON s.`ID`=sa.id\r\n" + "LEFT JOIN\r\n" + "(\r\n" + "SELECT b.id,\r\n"
-							+ "ROUND (SUM(IFNULL(b.skillpts,0))*(SELECT WEIGHTAGE FROM seed_points_weightage WHERE id=2)/100)AS TOTAL_SKILL_POINTS\r\n"
-							+ " FROM\r\n" + "((SELECT sp.`STUDENT_ID` id,SUM(SKILL_POINTS) skillpts\r\n"
-							+ "FROM student_project_sprint_activities spsa\r\n"
-							+ "JOIN project_sprint_activities psa\r\n"
-							+ "ON psa.`ID`=spsa.`PROJECT_SPRINT_ACTIVITY_ID`\r\n"
-							+ "RIGHT JOIN student_project_sprints sps\r\n"
-							+ "ON sps.`ID`=spsa.`STUDENT_PROJECTS_SPRINT_ID`\r\n" + "RIGHT JOIN student_projects sp\r\n"
-							+ "ON sp.`ID`=sps.`STUDENT_PROJECT_ID`\r\n" + "RIGHT JOIN projects p \r\n"
-							+ "ON p.`ID`=sp.`PROJECT_ID`\r\n" + "WHERE spsa.`STATUS_ID`= 2\r\n"
-							+ "GROUP BY sp.STUDENT_ID)\r\n" + "UNION ALL\r\n"
-							+ "(SELECT sc.`STUDENT_ID` id,SUM(cc.`SKILL_POINTS`) skillpts\r\n"
-							+ "FROM student_courses sc\r\n" + "LEFT JOIN student_course_contents scc\r\n"
-							+ "ON sc.`ID` = scc.`STUDENT_COURSE_ID`\r\n" + "JOIN course_contents cc\r\n"
-							+ "ON cc.`ID` = scc.`COURSE_CONTENT_ID`\r\n" + "JOIN courses c\r\n"
-							+ "ON c.`ID`=cc.`COURSE_ID`\r\n" + "WHERE scc.`STATUS_ID` = 2\r\n"
-							+ "GROUP BY sc.`STUDENT_ID`)\r\n" + "UNION ALL\r\n"
-							+ "(SELECT sq.`STUDENT_ID`,SUM(q.`SKILL_POINTS`) skillpts\r\n"
-							+ "FROM student_quizes sq\r\n" + "JOIN quizzes q ON q.`ID`=sq.`QUIZ_ID`\r\n"
-							+ "RIGHT JOIN students s\r\n" + "ON s.`ID`=sq.`STUDENT_ID`\r\n"
-							+ "WHERE sq.`STATUS_ID`=2\r\n" + "GROUP BY sq.`STUDENT_ID`\r\n" + "))b\r\n"
-							+ "GROUP BY b.id)ss\r\n" + "ON sa.id=ss.id\r\n"
-							+ "ORDER BY tot DESC,skillPts DESC,createdOn DESC");
+					"SELECT s.`ID`stuId,s.`NAME`name,u.`NAME`college,s.`DEPARTMENT`department,s.`CREATED_ON`createdOn,\r\n" + 
+					"IFNULL(sa.`TOTAL_ACTIVITY_POINTS`,0) actPts,\r\n" + 
+					"IFNULL(ss.`TOTAL_SKILL_POINTS`,0) skillPts,\r\n" + 
+					"IFNULL(sa.`TOTAL_ACTIVITY_POINTS`,0)+IFNULL(ss.`TOTAL_SKILL_POINTS`,0) tot\r\n" + 
+					"FROM students s JOIN universities u ON s.`UNIVERSITY_ID`=u.`ID`\r\n" + 
+					"JOIN (SELECT a.id, \r\n" + 
+					"ROUND (SUM(IFNULL(a.actpts,0))*(SELECT WEIGHTAGE FROM seed_points_weightage WHERE id=1)/100)AS TOTAL_ACTIVITY_POINTS\r\n" + 
+					"FROM\r\n" + 
+					"((SELECT s.`ID`,SUM(c.`ENROLLMENT_POINTS`)+SUM(IF(IFNULL(sc.`COMPLETED_ON`,FALSE),c.`COMPLETION_POINTS`,0)) actpts \r\n" + 
+					"FROM students s\r\n" + 
+					"JOIN student_courses sc ON s.`ID`=sc.`STUDENT_ID` \r\n" + 
+					"JOIN courses c ON c.`ID`=sc.`COURSE_ID` GROUP BY s.`ID`)\r\n" + 
+					"\r\n" + 
+					"UNION ALL\r\n" + 
+					"(SELECT s.`ID`,SUM(p.`ENROLLMENT_POINTS`)+SUM(IF(IFNULL(sp.`COMPLETED_ON`,FALSE),p.`COMPLETION_POINTS`,0)) actpts \r\n" + 
+					"FROM students s \r\n" + 
+					"JOIN student_projects sp ON s.`ID`=sp.`STUDENT_ID`\r\n" + 
+					"JOIN projects p ON sp.`PROJECT_ID`=p.`ID`GROUP BY s.`ID`)\r\n" + 
+					"\r\n" + 
+					"UNION ALL\r\n" + 
+					"(SELECT `student_id` id,COUNT(DISTINCT(DATE(activity_timestamp)))*(SELECT points FROM point_settings WHERE login_activity_id=1) actpts\r\n" + 
+					" FROM student_audit_details\r\n" + 
+					"WHERE login_activity_id=1 GROUP BY student_id ))a\r\n" + 
+					"GROUP BY a.id)sa\r\n" + 
+					"ON s.`ID`=sa.id\r\n" + 
+					"LEFT JOIN\r\n" + 
+					"(\r\n" + 
+					"SELECT b.id,\r\n" + 
+					"ROUND (SUM(IFNULL(b.skillpts,0))*(SELECT WEIGHTAGE FROM seed_points_weightage WHERE id=2)/100)AS TOTAL_SKILL_POINTS\r\n" + 
+					" FROM\r\n" + 
+					"((SELECT sp.`STUDENT_ID` id,SUM(SKILL_POINTS) skillpts\r\n" + 
+					"FROM student_project_sprint_activities spsa\r\n" + 
+					"JOIN project_sprint_activities psa\r\n" + 
+					"ON psa.`ID`=spsa.`PROJECT_SPRINT_ACTIVITY_ID`\r\n" + 
+					"RIGHT JOIN student_project_sprints sps\r\n" + 
+					"ON sps.`ID`=spsa.`STUDENT_PROJECTS_SPRINT_ID`\r\n" + 
+					"RIGHT JOIN student_projects sp\r\n" + 
+					"ON sp.`ID`=sps.`STUDENT_PROJECT_ID`\r\n" + 
+					"RIGHT JOIN projects p \r\n" + 
+					"ON p.`ID`=sp.`PROJECT_ID`\r\n" + 
+					"WHERE spsa.`STATUS_ID`= 2\r\n" + 
+					"GROUP BY sp.STUDENT_ID)\r\n" + 
+					"UNION ALL\r\n" + 
+					"(SELECT sc.`STUDENT_ID` id,SUM(cc.`SKILL_POINTS`) skillpts\r\n" + 
+					"FROM student_courses sc\r\n" + 
+					"LEFT JOIN student_course_contents scc\r\n" + 
+					"ON sc.`ID` = scc.`STUDENT_COURSE_ID`\r\n" + 
+					"JOIN course_contents cc\r\n" + 
+					"ON cc.`ID` = scc.`COURSE_CONTENT_ID`\r\n" + 
+					"JOIN courses c\r\n" + 
+					"ON c.`ID`=cc.`COURSE_ID`\r\n" + 
+					"WHERE scc.`STATUS_ID` = 2\r\n" + 
+					"GROUP BY sc.`STUDENT_ID`)\r\n" + 
+					"UNION ALL\r\n" + 
+					"(SELECT sq.`STUDENT_ID`,SUM(q.`SKILL_POINTS`) skillpts\r\n" + 
+					"FROM student_quizes sq\r\n" + 
+					"JOIN quizzes q ON q.`ID`=sq.`QUIZ_ID`\r\n" + 
+					"RIGHT JOIN students s\r\n" + 
+					"ON s.`ID`=sq.`STUDENT_ID`\r\n" + 
+					"WHERE sq.`STATUS_ID`=2\r\n" + 
+					"GROUP BY sq.`STUDENT_ID`\r\n" + 
+					"))b\r\n" + 
+					"GROUP BY b.id)ss\r\n" + 
+					"ON sa.id=ss.id\r\n" + 
+					"ORDER BY tot DESC,skillPts DESC,createdOn DESC\r\n" );
 			studentRank = dataRetriver.retrieveBySQLWithResultTransformer(sb.toString(), StudentRankDTO.class);
 			logger.info("Student global rank data retrieval success..");
 		} catch (DataAccessException e) {

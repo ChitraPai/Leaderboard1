@@ -69,7 +69,7 @@ public class StudentAccountController {
 	// }
 	//
 	
-	@GetMapping("changepassword")
+	@PostMapping("changepassword")
 	public String changeStudentPassword(@RequestParam("emailId") String emailId,
 			@RequestParam("oldPassword") String oldPassword,@RequestParam("newPassword") String newPassword) {
 	
